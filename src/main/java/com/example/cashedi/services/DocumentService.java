@@ -2,6 +2,7 @@ package com.example.cashedi.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 
@@ -14,6 +15,7 @@ public class DocumentService {
     private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
     private final AprilApiService aprilApiService;
 
+    @Autowired
     public DocumentService(AprilApiService aprilApiService) {
         this.aprilApiService = aprilApiService;
     }
@@ -26,11 +28,9 @@ public class DocumentService {
      */
     public Optional<String> getDocumentContentById(String identifiant) {
         try {
-            // Appeler le service pour récupérer le contenu brut du document (en bytes)
             byte[] documentBytes = aprilApiService.getDocument(identifiant);
 
             if (documentBytes != null && documentBytes.length > 0) {
-                // Encoder le contenu en Base64
                 String base64Content = Base64.getEncoder().encodeToString(documentBytes);
                 return Optional.of(base64Content);
             } else {
@@ -39,14 +39,11 @@ public class DocumentService {
             }
 
         } catch (HttpClientErrorException.NotFound e) {
-            // Gérer spécifiquement le cas où le document n'est pas trouvé (404)
             logger.warn("Aucun document trouvé pour l'identifiant: {}", identifiant);
-            return Optional.empty(); // Retourner un Optional vide pour indiquer que le document n'existe pas
+            return Optional.empty();
 
         } catch (Exception e) {
-            // Gérer toutes les autres erreurs (ex: 500, erreur réseau, etc.)
             logger.error("Une erreur est survenue lors de la récupération du document avec l'identifiant: {}", identifiant, e);
-            // Relancer l'exception pour que le contrôleur puisse la gérer comme une erreur interne
             throw new RuntimeException("Erreur interne lors de la récupération du document.", e);
         }
     }

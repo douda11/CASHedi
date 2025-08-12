@@ -11,15 +11,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.example.cashedi.models.apivia.devis.DevisList;
 import reactor.core.publisher.Mono;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
-
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/apivia")
 public class ApiviaQuoteController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ApiviaQuoteController.class);
 
     private final ApiviaTarificationService apiviaTarificationService;
 
@@ -31,6 +34,7 @@ public class ApiviaQuoteController {
     @PostMapping("/generate-devis")
     public Mono<ResponseEntity<?>> generateDevis(@RequestBody GeneratePdfDevisRequest request,
                                                      @RequestParam(defaultValue = "false") boolean test) {
+        logger.info("Received generateDevis request: {}", request);
         Mono<GeneratePdfDevisResponse> responseMono = test
                 ? apiviaTarificationService.testGeneratePdfDevis(request)
                 : apiviaTarificationService.generatePdfDevis(request);

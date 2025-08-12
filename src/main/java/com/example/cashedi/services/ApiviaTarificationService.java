@@ -71,7 +71,7 @@ public class ApiviaTarificationService {
             formData.add("typeAffaire", request.getTypeAffaire());
             formData.add("typeObjectSortie", request.getTypeObjectSortie());
 
-                        // The API expects beneficiaries as an array of form fields, not a JSON string.
+            // The API expects beneficiaries as an array of form fields, not a JSON string.
             // Example: beneficiaires[0][typeBeneficiaire] = 'PRINCIPAL'
             if (request.getBeneficiaires() != null) {
                 for (int i = 0; i < request.getBeneficiaires().size(); i++) {
@@ -114,6 +114,12 @@ public class ApiviaTarificationService {
     }
 
     private Mono<GeneratePdfDevisResponse> getTarifAndGeneratePdf(GeneratePdfDevisRequest request) {
+        // Validate request data before calling API
+        String validationError = validateRequestData(request);
+        if (validationError != null) {
+            return Mono.error(new RuntimeException("Validation error: " + validationError));
+        }
+        
         // Step 1: Call Tarification API to get the correct rate
         ApiviaTarificationRequest tarifRequest = new ApiviaTarificationRequest();
         tarifRequest.setFormat("json");
@@ -158,105 +164,38 @@ public class ApiviaTarificationService {
         });
     }
 
-    private void parseAndFillAdresse(Adresse adresse) {
-        if (adresse == null || adresse.getNomVoie() == null || adresse.getNomVoie().trim().isEmpty()) {
-            return;
+    private String validateRequestData(GeneratePdfDevisRequest request) {
+        // Date d'effet validation (simple regex for DD/MM/YYYY)
+        if (request.getDateEffet() == null || !request.getDateEffet().matches("^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}$")) {
+            return "Invalid date format for dateEffet. Expected DD/MM/YYYY.";
         }
 
-        String fullAddress = adresse.getNomVoie().trim();
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("^(\\d+)?\\s*([a-zA-Zàâçéèêëîïôûùüÿñæœ]+)?\\s*(.*)");
-        java.util.regex.Matcher matcher = pattern.matcher(fullAddress);
-
-        if (matcher.matches()) {
-            String numero = matcher.group(1) != null ? matcher.group(1).trim() : "";
-            String RnatureVoie = matcher.group(2) != null ? matcher.group(2).trim() : "";
-            String nomVoie = matcher.group(3) != null ? matcher.group(3).trim() : "";
-
-            String natureVoieUpper = RnatureVoie.toUpperCase();
-            String finalNatureVoie = RnatureVoie; // Default to original
-            String finalNomVoie = nomVoie;
-
-            boolean isKnownType = true;
-
-            switch (natureVoieUpper) {
-                case "ALLÉE": finalNatureVoie = "ALL"; break;
-                case "AUTRE": finalNatureVoie = "AUT"; break;
-                case "AVENUE": finalNatureVoie = "AVE"; break;
-                case "BÂTIMENT": finalNatureVoie = "BAT"; break;
-                case "BOIS": finalNatureVoie = "BOI"; break;
-                case "BUTTE": finalNatureVoie = "BTE"; break;
-                case "BOULEVARD": finalNatureVoie = "BVD"; break;
-                case "CARREFOUR": finalNatureVoie = "CAR"; break;
-                case "CHEMIN": finalNatureVoie = "CHE"; break;
-                case "CHAUSSÉE": finalNatureVoie = "CHS"; break;
-                case "CITÉ": finalNatureVoie = "CIT"; break;
-                case "CLOS": finalNatureVoie = "CLS"; break;
-                case "CORNICHE": finalNatureVoie = "COR"; break;
-                case "COUR": finalNatureVoie = "COU"; break;
-                case "COURS": finalNatureVoie = "CRS"; break;
-                case "CROIX": finalNatureVoie = "CRX"; break;
-                case "CENTRE": finalNatureVoie = "CTR"; break;
-                case "COTEAUX": finalNatureVoie = "CTX"; break;
-                case "DOMAINE": finalNatureVoie = "DOM"; break;
-                case "ESPLANADE": finalNatureVoie = "ESP"; break;
-                case "FAUBOURG": finalNatureVoie = "FBG"; break;
-                case "FOYER": finalNatureVoie = "FOY"; break;
-                case "GALERIE": finalNatureVoie = "GAL"; break;
-                case "GROUPE": finalNatureVoie = "GPE"; break;
-                case "HAMEAU": finalNatureVoie = "HAM"; break;
-                case "HÔPITAL": finalNatureVoie = "HOS"; break;
-                case "HÔTEL": finalNatureVoie = "HOT"; break;
-                case "ILE": finalNatureVoie = "ILE"; break;
-                case "ILOT": finalNatureVoie = "ILT"; break;
-                case "IMMEUBLE": finalNatureVoie = "IMM"; break;
-                case "IMPASSE": finalNatureVoie = "IMP"; break;
-                case "JARDIN": finalNatureVoie = "JRD"; break;
-                case "JETÉE": finalNatureVoie = "JTE"; break;
-                case "LOTISSEMENT": finalNatureVoie = "LOT"; break;
-                case "MAIL": finalNatureVoie = "MAI"; break;
-                case "PASSAGE": finalNatureVoie = "PAS"; break;
-                case "PAVILLON": finalNatureVoie = "PAV"; break;
-                case "PLACE": finalNatureVoie = "PL"; break;
-                case "PLATEAU": finalNatureVoie = "PLT"; break;
-                case "PONT": finalNatureVoie = "PNT"; break;
-                case "PARC": finalNatureVoie = "PRC"; break;
-                case "PROMENADE": finalNatureVoie = "PRO"; break;
-                case "PERISTYLE": finalNatureVoie = "PRS"; break;
-                case "PORT": finalNatureVoie = "PRT"; break;
-                case "PORTE": finalNatureVoie = "PTE"; break;
-                case "PONTON": finalNatureVoie = "PTN"; break;
-                case "QUAI": finalNatureVoie = "QAI"; break;
-                case "QUARTIER": finalNatureVoie = "QRT"; break;
-                case "ROND-POINT": finalNatureVoie = "RDP"; break;
-                case "RÉSIDENCE": finalNatureVoie = "RES"; break;
-                case "RUELLE": finalNatureVoie = "RLE"; break;
-                case "ROUTE": finalNatureVoie = "RTE"; break;
-                case "RUE": finalNatureVoie = "RUE"; break;
-                case "SENTIER": finalNatureVoie = "SEN"; break;
-                case "SQUARE": finalNatureVoie = "SQ"; break;
-                case "TOUR": finalNatureVoie = "TOU"; break;
-                case "TRAVERSE": finalNatureVoie = "TSE"; break;
-                case "VILLA": finalNatureVoie = "VLA"; break;
-                case "VOIE": finalNatureVoie = "VOI"; break;
-                default:
-                    isKnownType = false;
-                    break;
-            }
-
-            adresse.setNumero(numero);
-            if (isKnownType) {
-                adresse.setNatureVoie(finalNatureVoie);
-                adresse.setNomVoie(finalNomVoie);
-            } else {
-                // If not a known type, it's part of the street name
-                adresse.setNatureVoie("");
-                adresse.setNomVoie((RnatureVoie + " " + nomVoie).trim());
-            }
-
-        } else {
-            // Fallback for addresses that don't match the pattern
-            adresse.setNomVoie(fullAddress);
+        if (request.getSouscripteur() == null) {
+            return "Souscripteur is missing.";
         }
+
+        com.example.cashedi.models.apivia.devis.Adresse adresse = request.getSouscripteur().getAdresse();
+        if (adresse == null) {
+            return "Adresse for souscripteur is missing.";
+        }
+
+        // Code Postal validation
+        if (adresse.getCodePostal() == null || !adresse.getCodePostal().matches("^\\d{5}$")) {
+            return "Invalid codePostal. Expected 5 digits.";
+        }
+
+        // Required address fields validation based on documentation
+        if (adresse.getNomVoie() == null || adresse.getNomVoie().isEmpty()) {
+            return "nomVoie is required in the address.";
+        }
+        if (adresse.getNatureVoie() == null || adresse.getNatureVoie().isEmpty()) {
+            return "natureVoie is required in the address.";
+        }
+        if (adresse.getVille() == null || adresse.getVille().isEmpty()) {
+            return "ville is required in the address.";
+        }
+
+        return null; // No validation errors
     }
 
     private Mono<GeneratePdfDevisResponse> callGeneratePdfApi(GeneratePdfDevisRequest request) {
@@ -291,7 +230,6 @@ public class ApiviaTarificationService {
                 formData.add("souscripteur[email]", request.getSouscripteur().getEmail());
                 if (request.getSouscripteur().getAdresse() != null) {
                     Adresse adresse = request.getSouscripteur().getAdresse();
-                    parseAndFillAdresse(adresse); // Parse address before adding to form data
                     formData.add("souscripteur[adresse][numero]", adresse.getNumero());
                     formData.add("souscripteur[adresse][codeBtq]", adresse.getCodeBtq());
                     formData.add("souscripteur[adresse][natureVoie]", adresse.getNatureVoie());
@@ -299,7 +237,17 @@ public class ApiviaTarificationService {
                     formData.add("souscripteur[adresse][complement]", adresse.getComplement());
                     formData.add("souscripteur[adresse][codePostal]", adresse.getCodePostal());
                     formData.add("souscripteur[adresse][ville]", adresse.getVille());
-                    formData.add("souscripteur[adresse][isAdresseComplete]", String.valueOf(adresse.isAdresseComplete()));
+
+                    // Build and add the 'adresseComplete' string
+                    StringBuilder sb = new StringBuilder();
+                    if (adresse.getNumero() != null && !adresse.getNumero().isEmpty()) sb.append(adresse.getNumero()).append(" ");
+                    if (adresse.getCodeBtq() != null && !adresse.getCodeBtq().isEmpty()) sb.append(adresse.getCodeBtq()).append(" ");
+                    if (adresse.getNatureVoie() != null && !adresse.getNatureVoie().isEmpty()) sb.append(adresse.getNatureVoie()).append(" ");
+                    if (adresse.getNomVoie() != null && !adresse.getNomVoie().isEmpty()) sb.append(adresse.getNomVoie());
+                    
+                    String fullAddress = sb.toString().trim();
+                    formData.add("souscripteur[adresse][adresseComplete]", fullAddress);
+                    formData.add("souscripteur[adresse][isAdresseComplete]", String.valueOf(adresse.isAdresseEstComplete()));
                 }
             }
 

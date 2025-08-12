@@ -1,10 +1,10 @@
 package com.example.cashedi.models.apivia;
 
+import com.example.cashedi.models.apivia.devis.Adresse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
-import com.example.cashedi.models.apivia.devis.Adresse;
-import lombok.NoArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -25,5 +25,7 @@ public class ApiviaBeneficiaire {
 
     @JsonProperty("typeAutreBeneficiaire")
     private String typeAutreBeneficiaire;
+
+    @JsonProperty("adresse")
     private Adresse adresse; // Optional
 }
