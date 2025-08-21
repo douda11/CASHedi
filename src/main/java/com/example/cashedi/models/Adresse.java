@@ -8,4 +8,6 @@ import jakarta.validation.constraints.NotBlank;
 public class Adresse {
     @NotBlank(message = "Le code postal ne peut pas être vide")
     private String codePostal;
+    @NotBlank(message = "La ville ne peut pas être vide")
+    private String ville;
 }

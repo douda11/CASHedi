@@ -2,6 +2,7 @@ package com.example.cashedi.services;
 
 import com.example.cashedi.entites.Projet;
 import com.example.cashedi.models.Tarifs;
+import com.example.cashedi.models.AlptisTarificationResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -35,7 +36,7 @@ public class AlptisServiceImpl implements AlptisService {
     }
 
     @Override
-    public Tarifs getTarification(Projet projet) {
+    public AlptisTarificationResponse getTarification(Projet projet) {
         try {
             Map<String, Object> requestBody = buildRequestBody(projet);
             
@@ -52,9 +53,40 @@ public class AlptisServiceImpl implements AlptisService {
                 String.class
             );
             
-            return parseResponse(response.getBody(), projet.getOffre().getNiveau());
+            return parseResponse(response.getBody());
         } catch (Exception e) {
             logger.error("Error calling Alptis tarification API", e);
+            return null;
+        }
+    }
+
+    // New method to create project in Alptis system
+    public String createAlptisProject(Projet projet) {
+        try {
+            Map<String, Object> projectData = buildAlptisProjectData(projet);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("X-Alptis-Api-Key", alptisApiKey);
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(projectData, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                alptisApiBaseUrl + "/projets",
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            // Parse response to get Alptis project ID
+            JsonNode responseNode = objectMapper.readTree(response.getBody());
+            String alptisProjectId = responseNode.path("id").asText();
+            
+            logger.info("Project created in Alptis system with ID: {}", alptisProjectId);
+            return alptisProjectId;
+            
+        } catch (Exception e) {
+            logger.error("Error creating project in Alptis system", e);
             return null;
         }
     }
@@ -78,7 +110,7 @@ public class AlptisServiceImpl implements AlptisService {
                                projet.getAssures().getAdherent().getCoordonnees().getAdresse().getCodePostal() : null;
             String cadreExercice = projet.getAssures().getAdherent().getCode_cadre_exercice();
             String categorieSocioprofessionnelle = projet.getAssures().getAdherent().getCode_categorie_socio_professionnelle();
-            
+
             // Business rule: For certain professional categories, adjust cadre_exercice
             if ("ARTISANS".equals(categorieSocioprofessionnelle) || 
                 "COMMERCANTS".equals(categorieSocioprofessionnelle) ||
@@ -100,6 +132,27 @@ public class AlptisServiceImpl implements AlptisService {
             adherent.put("micro_entrepreneur", microEntrepreneur);
             
             assures.put("adherent", adherent);
+        }
+
+        // Conjoint
+        if (projet.getAssures() != null && projet.getAssures().getConjoint() != null) {
+            Map<String, Object> conjoint = new HashMap<>();
+            conjoint.put("date_naissance", projet.getAssures().getConjoint().getDate_naissance());
+            conjoint.put("regime_obligatoire", projet.getAssures().getConjoint().getCode_regime_obligatoire());
+            conjoint.put("categorie_socioprofessionnelle", projet.getAssures().getConjoint().getCode_categorie_socio_professionnelle());
+            assures.put("conjoint", conjoint);
+        }
+
+        // Enfants
+        if (projet.getAssures() != null && projet.getAssures().getEnfants() != null && !projet.getAssures().getEnfants().isEmpty()) {
+            java.util.List<Map<String, Object>> enfantsList = new java.util.ArrayList<>();
+            for (com.example.cashedi.models.Enfant enfant : projet.getAssures().getEnfants()) {
+                Map<String, Object> enfantMap = new HashMap<>();
+                enfantMap.put("date_naissance", enfant.getDate_naissance());
+                enfantMap.put("regime_obligatoire", enfant.getCode_regime_obligatoire());
+                enfantsList.add(enfantMap);
+            }
+            assures.put("enfants", enfantsList);
         }
 
         // Add combinaisons based on the offer level
@@ -127,7 +180,57 @@ public class AlptisServiceImpl implements AlptisService {
         return body;
     }
 
-    private Tarifs parseResponse(String responseBody, String niveau) {
+    private Map<String, Object> buildAlptisProjectData(Projet projet) {
+        Map<String, Object> projectData = new HashMap<>();
+
+        // Based on the tarification request, we can assume a similar structure is needed.
+        // The API documentation is the source of truth here.
+
+        // Top-level fields from Projet
+        projectData.put("code_distributeur", projet.getUtilisateur().getCode_distributeur());
+        projectData.put("date_effet", new SimpleDateFormat("yyyy-MM-dd").format(projet.getDateEffet()));
+        projectData.put("commissionnement", projet.getCommissionnement());
+        projectData.put("type_cotisation", projet.getTypeCotisation());
+
+        // Nested objects
+        // Manually build the assures object to ensure correct structure
+        Map<String, Object> assures = new HashMap<>();
+        if (projet.getAssures() != null && projet.getAssures().getAdherent() != null) {
+            Map<String, Object> adherent = objectMapper.convertValue(projet.getAssures().getAdherent(), Map.class);
+            assures.put("adherent", adherent);
+        }
+        projectData.put("assures", assures); 
+
+        projectData.put("offre", projet.getOffre()); // Assuming the Offre object structure is correct
+        projectData.put("paiement", projet.getPaiement()); // Assuming the Paiement object structure is correct
+        projectData.put("remboursement", projet.getRemboursement());
+
+        // The tarification response fields might be needed for project creation
+        Map<String, Object> tarificationResult = new HashMap<>();
+        tarificationResult.put("tarifs", projet.getTarifs());
+        tarificationResult.put("generation_tarif", projet.getGenerationTarif());
+        tarificationResult.put("code_association", projet.getCodeAssociation());
+        tarificationResult.put("millesime", projet.getMillesime());
+
+        projectData.put("resultats_tarification", java.util.Arrays.asList(tarificationResult));
+
+        // It's likely that only the selected product's code is needed.
+        if (projet.getProduits() != null && !projet.getProduits().isEmpty()) {
+            projectData.put("produits", projet.getProduits());
+        }
+
+        // Log the final JSON payload for debugging
+        try {
+            String jsonPayload = objectMapper.writeValueAsString(projectData);
+            logger.info("Alptis Create Project Request Body: {}", jsonPayload);
+        } catch (Exception e) {
+            logger.error("Error serializing Alptis project data", e);
+        }
+
+        return projectData;
+    }
+
+    private AlptisTarificationResponse parseResponse(String responseBody) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
             
@@ -158,10 +261,26 @@ public class AlptisServiceImpl implements AlptisService {
             tarifs.setCotisationDeductibleMadelin(tarifsNode.path("cotisation_deductible_madelin").asDouble());
             tarifs.setDroitEntree(tarifsNode.path("droit_entree").asDouble());
             
+            // Extract additional fields from the first result
+            String generationTarif = firstResult.path("generation_tarif").asText();
+            String codeAssociation = firstResult.path("code_association").asText();
+            String typeCotisation = firstResult.path("type_cotisation").asText();
+            int millesime = firstResult.path("millesime").asInt();
+            
             logger.info("Successfully parsed tarifs: totalMensuel={}, cotisationBase={}, cotisationSurco={}", 
                 tarifs.getTotalMensuel(), tarifs.getCotisationMensuelleBase(), tarifs.getCotisationMensuelleSurco());
+            logger.info("Additional fields: generationTarif={}, codeAssociation={}, typeCotisation={}, millesime={}", 
+                generationTarif, codeAssociation, typeCotisation, millesime);
 
-            return tarifs;
+            // Create and return the complete response
+            AlptisTarificationResponse response = new AlptisTarificationResponse();
+            response.setTarifs(tarifs);
+            response.setGenerationTarif(generationTarif);
+            response.setCodeAssociation(codeAssociation);
+            response.setTypeCotisation(typeCotisation);
+            response.setMillesime(millesime);
+
+            return response;
         } catch (Exception e) {
             logger.error("Error parsing Alptis tarification response", e);
             return null;

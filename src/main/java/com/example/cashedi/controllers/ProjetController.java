@@ -1,12 +1,13 @@
 package com.example.cashedi.controllers;
 
 import com.example.cashedi.entites.Projet;
+import com.example.cashedi.models.Produit;
 import com.example.cashedi.services.ProjetService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,12 +20,13 @@ public class ProjetController {
     private ProjetService projetService;
 
     @PostMapping
-        public ResponseEntity<?> createProject(@Valid @RequestBody Projet projet) {
+    public ResponseEntity<Map<String, Object>> createProject(@Valid @RequestBody Projet projet) {
         Projet createdProjet = projetService.createProject(projet);
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Le projet n° " + createdProjet.getId() + " a été créé avec succès.");
         response.put("id", createdProjet.getId());
-        return ResponseEntity.ok(response);
+        response.put("alptisProjectId", createdProjet.getAlptisProjectId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{projetId}")
@@ -44,6 +46,20 @@ public class ProjetController {
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{projetId}/select-product")
+    public ResponseEntity<Projet> selectProductForProject(
+            @PathVariable String projetId, 
+            @RequestBody Produit selectedProduct) {
+        try {
+            Projet updatedProjet = projetService.selectProductForProject(projetId, selectedProduct);
+            return ResponseEntity.ok(updatedProjet);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

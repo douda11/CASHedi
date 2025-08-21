@@ -2,6 +2,7 @@ package com.example.cashedi.controllers;
 
 import com.example.cashedi.entites.Projet;
 import com.example.cashedi.models.Tarifs;
+import com.example.cashedi.models.AlptisTarificationResponse;
 import com.example.cashedi.services.AlptisService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,12 +21,17 @@ public class AlptisController {
         this.alptisService = alptisService;
     }
 
-    @PostMapping("/tarification/obtenir-tarifs")
-    public ResponseEntity<?> getTarifs(@RequestBody Projet projet) {
-        Tarifs tarifs = alptisService.getTarification(projet);
-        if (tarifs != null) {
-            return ResponseEntity.ok(tarifs);
+    @PostMapping("/tarification")
+    public ResponseEntity<AlptisTarificationResponse> getTarification(@RequestBody Projet projet) {
+        try {
+            AlptisTarificationResponse response = alptisService.getTarification(projet);
+            if (response != null) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching tarification.");
     }
 }

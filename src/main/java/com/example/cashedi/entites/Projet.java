@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-
 import java.util.Date;
 import java.util.List;
 
@@ -24,6 +23,8 @@ public class Projet {
     private String id;
     @JsonProperty("client_id")
     private Long clientId;
+    @JsonProperty("alptis_project_id")
+    private String alptisProjectId;
     @JsonProperty("statut")
     private String statut;
     private String etat;
