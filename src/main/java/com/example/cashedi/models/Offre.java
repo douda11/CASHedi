@@ -3,6 +3,7 @@ package com.example.cashedi.models;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.NotBlank;
 
@@ -12,5 +13,6 @@ import jakarta.validation.constraints.NotBlank;
 public class Offre {
     @NotBlank(message = "Le niveau de l'offre ne peut pas être vide")
     private String niveau;
+    @JsonProperty("sur_complementaire")
     private boolean sur_complementaire;
 }

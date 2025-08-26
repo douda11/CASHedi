@@ -43,6 +43,7 @@ public class Projet {
     @NotNull(message = "L'offre ne peut pas être nulle")
     @Valid
     private Offre offre;
+    private java.util.List<Combinaison> combinaisons;
     private Tarifs tarifs;
     private String codeAssociation;
     private int millesime;

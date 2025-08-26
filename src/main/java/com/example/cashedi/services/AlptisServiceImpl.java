@@ -3,6 +3,7 @@ package com.example.cashedi.services;
 import com.example.cashedi.entites.Projet;
 import com.example.cashedi.models.Tarifs;
 import com.example.cashedi.models.AlptisTarificationResponse;
+import com.example.cashedi.models.Combinaison;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -105,27 +106,35 @@ public class AlptisServiceImpl implements AlptisService {
             // Map fields according to Alptis API format with defaults for required fields
             adherent.put("date_naissance", projet.getAssures().getAdherent().getDate_naissance());
             
-            // regime_obligatoire with default
+            // regime_obligatoire - required field, must be provided
             String regimeObligatoire = projet.getAssures().getAdherent().getCode_regime_obligatoire();
-            adherent.put("regime_obligatoire", regimeObligatoire != null ? regimeObligatoire : "SECURITE_SOCIALE");
+            if (regimeObligatoire != null) {
+                adherent.put("regime_obligatoire", regimeObligatoire);
+            }
             
-            // cadre_exercice with default
+            // cadre_exercice - required field, must be provided
             String cadreExercice = projet.getAssures().getAdherent().getCode_cadre_exercice();
-            adherent.put("cadre_exercice", cadreExercice != null ? cadreExercice : "INDEPENDANT");
+            if (cadreExercice != null) {
+                adherent.put("cadre_exercice", cadreExercice);
+            }
             
-            // categorie_socioprofessionnelle with default
+            // categorie_socioprofessionnelle - required field, must be provided
             String categorieSocio = projet.getAssures().getAdherent().getCode_categorie_socio_professionnelle();
-            adherent.put("categorie_socioprofessionnelle", categorieSocio != null ? categorieSocio : "AGRICULTEURS_EXPLOITANTS");
+            if (categorieSocio != null) {
+                adherent.put("categorie_socioprofessionnelle", categorieSocio);
+            }
             
             adherent.put("micro_entrepreneur", projet.getAssures().getAdherent().isMicro_entrepreneur());
             
-            // Add code_postal with default if not available
-            String codePostal = null;
-            if (projet.getAssures().getAdherent().getCoordonnees() != null && 
+            // Add code_postal - required field, must be provided
+            String codePostal = projet.getAssures().getAdherent().getCodePostalDirect();
+            if (codePostal == null && projet.getAssures().getAdherent().getCoordonnees() != null && 
                 projet.getAssures().getAdherent().getCoordonnees().getAdresse() != null) {
                 codePostal = projet.getAssures().getAdherent().getCoordonnees().getAdresse().getCodePostal();
             }
-            adherent.put("code_postal", codePostal != null ? codePostal : "69003");
+            if (codePostal != null) {
+                adherent.put("code_postal", codePostal);
+            }
             
             // Add statut_professionnel if available (new field from API example)
             if (projet.getAssures().getAdherent().getCode_statut_professionnel() != null) {
@@ -140,13 +149,17 @@ public class AlptisServiceImpl implements AlptisService {
             Map<String, Object> conjoint = new HashMap<>();
             conjoint.put("date_naissance", projet.getAssures().getConjoint().getDate_naissance());
             
-            // regime_obligatoire with default
+            // regime_obligatoire - required field, must be provided
             String regimeObligatoireConjoint = projet.getAssures().getConjoint().getCode_regime_obligatoire();
-            conjoint.put("regime_obligatoire", regimeObligatoireConjoint != null ? regimeObligatoireConjoint : "SECURITE_SOCIALE");
+            if (regimeObligatoireConjoint != null) {
+                conjoint.put("regime_obligatoire", regimeObligatoireConjoint);
+            }
             
-            // categorie_socioprofessionnelle with default
+            // categorie_socioprofessionnelle - required field, must be provided
             String categorieSocioConjoint = projet.getAssures().getConjoint().getCode_categorie_socio_professionnelle();
-            conjoint.put("categorie_socioprofessionnelle", categorieSocioConjoint != null ? categorieSocioConjoint : "AGRICULTEURS_EXPLOITANTS");
+            if (categorieSocioConjoint != null) {
+                conjoint.put("categorie_socioprofessionnelle", categorieSocioConjoint);
+            }
             
             assures.put("conjoint", conjoint);
         }
@@ -158,9 +171,11 @@ public class AlptisServiceImpl implements AlptisService {
                 Map<String, Object> enfantMap = new HashMap<>();
                 enfantMap.put("date_naissance", enfant.getDate_naissance());
                 
-                // regime_obligatoire with default
+                // regime_obligatoire - required field, must be provided
                 String regimeObligatoireEnfant = enfant.getCode_regime_obligatoire();
-                enfantMap.put("regime_obligatoire", regimeObligatoireEnfant != null ? regimeObligatoireEnfant : "SECURITE_SOCIALE");
+                if (regimeObligatoireEnfant != null) {
+                    enfantMap.put("regime_obligatoire", regimeObligatoireEnfant);
+                }
                 
                 enfantsList.add(enfantMap);
             }
@@ -173,17 +188,34 @@ public class AlptisServiceImpl implements AlptisService {
         Map<String, Object> combinaison = new HashMap<>();
         combinaison.put("numero", 1);
         
-        // Offre object with null safety check
+        // Extract values from combinaisons if available, otherwise use projet defaults
         Map<String, Object> offre = new HashMap<>();
-        if (projet.getOffre() != null) {
-            offre.put("niveau", projet.getOffre().getNiveau());
-            offre.put("sur_complementaire", projet.getOffre().isSur_complementaire());
+        String commissionnement = null;
+        
+        if (projet.getCombinaisons() != null && !projet.getCombinaisons().isEmpty()) {
+            Combinaison firstCombinaison = projet.getCombinaisons().get(0);
+            
+            // Extract offre from combinaison
+            if (firstCombinaison.getOffre() != null) {
+                if (firstCombinaison.getOffre().getNiveau() != null) {
+                    offre.put("niveau", firstCombinaison.getOffre().getNiveau());
+                }
+                offre.put("sur_complementaire", firstCombinaison.getOffre().isSur_complementaire());
+            }
+            
+            // Extract commissionnement from combinaison
+            commissionnement = firstCombinaison.getCommissionnement();
         } else {
-            // Default values if offre is null
-            logger.warn("Offre is null, using default values");
-            offre.put("niveau", "NIVEAU_1");
-            offre.put("sur_complementaire", false);
+            // Fallback to projet level values
+            if (projet.getOffre() != null) {
+                if (projet.getOffre().getNiveau() != null) {
+                    offre.put("niveau", projet.getOffre().getNiveau());
+                }
+                offre.put("sur_complementaire", projet.getOffre().isSur_complementaire());
+            }
+            commissionnement = projet.getCommissionnement();
         }
+        
         combinaison.put("offre", offre);
         
         // Add ayants_droit based on assures
@@ -197,13 +229,10 @@ public class AlptisServiceImpl implements AlptisService {
         ayantsDroit.put("enfants", nombreEnfants);
         combinaison.put("ayants_droit", ayantsDroit);
         
-        // Add commissionnement with null safety check
-        String commissionnement = projet.getCommissionnement();
-        if (commissionnement == null || commissionnement.trim().isEmpty()) {
-            logger.warn("Commissionnement is null or empty, using default value");
-            commissionnement = "LIN0";
+        // Add commissionnement - required field, must be provided
+        if (commissionnement != null && !commissionnement.trim().isEmpty()) {
+            combinaison.put("commissionnement", commissionnement);
         }
-        combinaison.put("commissionnement", commissionnement);
         
         combinaisons.add(combinaison);
         body.put("combinaisons", combinaisons);

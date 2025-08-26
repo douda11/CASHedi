@@ -7,9 +7,6 @@ import java.util.List;
 
 public class AlptisTarificationRequest {
 
-    @NotBlank(message = "Code distributeur is required")
-    @JsonProperty("code_distributeur")
-    private String codeDistributeur;
 
     @NotBlank(message = "Date effet is required")
     @JsonProperty("date_effet")
@@ -25,20 +22,15 @@ public class AlptisTarificationRequest {
     public AlptisTarificationRequest() {}
 
     public AlptisTarificationRequest(String codeDistributeur, String dateEffet, AlptisAssures assures, List<AlptisCombinaisonRequest> combinaisons) {
-        this.codeDistributeur = codeDistributeur;
         this.dateEffet = dateEffet;
         this.assures = assures;
         this.combinaisons = combinaisons;
     }
 
     // Getters and Setters
-    public String getCodeDistributeur() {
-        return codeDistributeur;
-    }
+ 
 
-    public void setCodeDistributeur(String codeDistributeur) {
-        this.codeDistributeur = codeDistributeur;
-    }
+
 
     public String getDateEffet() {
         return dateEffet;
@@ -56,7 +48,7 @@ public class AlptisTarificationRequest {
         this.assures = assures;
     }
 
-    public List<AlptisCombinaisonRequest> combinaisons() {
+    public List<AlptisCombinaisonRequest> getCombinaisons() {
         return combinaisons;
     }
 
@@ -67,7 +59,6 @@ public class AlptisTarificationRequest {
     @Override
     public String toString() {
         return "AlptisTarificationRequest{" +
-                "codeDistributeur='" + codeDistributeur + '\'' +
                 ", dateEffet='" + dateEffet + '\'' +
                 ", assures=" + assures +
                 ", combinaisons=" + combinaisons +

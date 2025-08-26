@@ -1,7 +1,9 @@
 package com.example.cashedi.models.alptis;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AlptisAssures {
 
     private AlptisAdherent adherent;

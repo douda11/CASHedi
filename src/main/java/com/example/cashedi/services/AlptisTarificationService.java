@@ -3,6 +3,7 @@ package com.example.cashedi.services;
 import com.example.cashedi.models.alptis.*;
 import com.example.cashedi.models.alptis.devis.AlptisGeneratePdfDevisRequest;
 import com.example.cashedi.models.alptis.devis.AlptisGeneratePdfDevisResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,15 @@ public class AlptisTarificationService {
     public Mono<AlptisTarificationResponseComplete> getTarification(AlptisTarificationRequest request) {
         try {
             logger.info("Calling Alptis Tarification API with request: {}", request);
+            
+            // Log the actual JSON payload being sent
+            ObjectMapper mapper = new ObjectMapper();
+            try {
+                String jsonPayload = mapper.writeValueAsString(request);
+                logger.info("Actual JSON payload being sent to Alptis API: {}", jsonPayload);
+            } catch (Exception e) {
+                logger.warn("Could not serialize request to JSON for logging", e);
+            }
 
             return webClient.post()
                     .uri(alptisApiBaseUrl + "/tarification/obtenir-tarifs")
@@ -109,7 +119,6 @@ public class AlptisTarificationService {
      */
     private AlptisTarificationRequest buildTarificationRequestFromDevis(AlptisGeneratePdfDevisRequest devisRequest) {
         AlptisTarificationRequest tarifRequest = new AlptisTarificationRequest();
-        tarifRequest.setCodeDistributeur(devisRequest.getCodeDistributeur());
         tarifRequest.setDateEffet(devisRequest.getDateEffet());
 
         // Build assures
