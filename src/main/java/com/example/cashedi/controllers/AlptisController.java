@@ -22,16 +22,21 @@ public class AlptisController {
     }
 
     @PostMapping("/tarification")
-    public ResponseEntity<AlptisTarificationResponse> getTarification(@RequestBody Projet projet) {
+    public ResponseEntity<?> getTarification(@RequestBody Projet projet) {
         try {
             AlptisTarificationResponse response = alptisService.getTarification(projet);
             if (response != null) {
                 return ResponseEntity.ok(response);
             } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to get tarification from Alptis API");
             }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .body("Invalid request: " + e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Internal server error: " + e.getMessage());
         }
     }
 }

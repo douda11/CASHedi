@@ -1,7 +1,9 @@
 package com.example.cashedi.models;
-import lombok.Data; // Ajoutez Lombok @Data pour simplicité
+import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
 
 @Data
 public class Besoin {
-    private String dateEffet; // Gardez-le comme String pour le format ISO 8601
+    @NotBlank(message = "La date d'effet du nouveau contrat est requise")
+    private String dateEffet; // Format ISO 8601: YYYY-MM-DD
 }

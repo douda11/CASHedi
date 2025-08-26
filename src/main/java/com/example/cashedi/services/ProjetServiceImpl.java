@@ -1,5 +1,4 @@
 package com.example.cashedi.services;
-
 import com.example.cashedi.entites.Projet;
 import com.example.cashedi.models.Archivage;
 import com.example.cashedi.models.Signature;
@@ -11,12 +10,10 @@ import com.example.cashedi.models.Produit;
 import com.example.cashedi.services.ContractService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
